@@ -1,4 +1,5 @@
 # GenComp
+The associated report [GenComp](https://drive.google.com/file/d/1tj1x9-nQRSKjByAwxCm0avFvru4V7552/view?usp=sharing)
 
 ## Installation
 
