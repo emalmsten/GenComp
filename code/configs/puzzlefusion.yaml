@@ -1,0 +1,62 @@
+general: # necessary
+  dataset: puzzlefusion # ltron puzzlefusion or protein
+  train: True  # train the model
+  test: False  # test the model
+model:
+  base_learning_rate: 0.0001
+  target: gencomp.diffusion.ddpm.DDPM
+  params:
+    linear_start: 0.0015
+    linear_end: 0.0195
+    log_every_t: 200
+    timesteps: 1000
+    image_size: 28
+    channels: 1
+    sample_shape: 
+      - 4
+      - 100
+    monitor: val/loss
+    model:
+      target: gencomp.modules.transformer.TransformerModel
+      params:
+        in_channels: 4
+        condition_channels: 66
+        model_channels: 128
+        out_channels: 4
+        use_checkpoint: False
+        rotation: True
+        use_image_features: False
+
+trainer:
+  max_epochs: 10
+  devices: 1
+  accelerator: gpu
+
+wandb:
+  api_key: 71b9f9ff578fd44ab5e1b6366ec991452cebc513
+  # api_key: null   # if None, will try to read from file
+  # api_key_from_file: "./code/wandb_api_key"
+  save_top_k: 1 # save k best model weights
+  params:
+    project: "gencomp-puzzlefusion"
+    save_dir: "experiments/puzzlefusion"
+    checkpoint_name: 'best_model'
+  
+data:
+  params:
+     batch_size: 256
+     shuffle: False
+     num_workers: 2
+  dataset:
+     target: puzzlefusion.crosscut_dataset.CrosscutDataset
+     params:
+       set_name: "train" # which folder to source the data from (train or test folders)
+       rotation: True
+       use_image_features: False #Not supported in this repository, see original puzzlefusion repo
+       data_path: "./datasets/puzzlefusion" # path to the dataset
+       numSamples: 1 # number of samples to to load in dataset
+     seed: 42 # necessary
+     train_size : 1 # necessary Since we use 
+     test_size : 0 # necessary
+
+      

@@ -1,0 +1,129 @@
+general:
+  dataset: ltron    # ltron puzzlefusion or protein
+  train: True       # train the model?
+  test: True        # test the model?
+
+model:
+  base_learning_rate: 0.0001
+  target: gencomp.diffusion.ddpm.DDPM
+  params:
+    linear_start: 0.0015
+    linear_end: 0.0195
+    log_every_t: 200
+    timesteps: 100
+    image_size: 28
+    channels: 1
+    sample_shape:
+      - 6
+      - 100
+    monitor: val/loss
+
+    model:
+      target: gencomp.modules.transformer.TransformerModel
+      params:
+        in_channels: 6
+        condition_channels: 3
+        model_channels: 128
+        out_channels: 6
+        use_checkpoint: False
+        rotation: False             # not relevant for ltron
+        use_image_features: False   # not relevant for ltron
+
+trainer:
+  max_epochs: 3
+  devices: 1
+  accelerator: cuda   # cpu or cuda
+
+testing:
+  target: lego.test.test_model
+  params:
+    path_to_model: null   # null if you want to use the latest model created
+    num_samples: 20       # -1 if wanting to use whole test dataset
+
+  output_dir: "./code/lego/output"
+  save_graphs: True
+  save_intermediates: False     # can take up a lot of space
+
+  loader_params:
+    batch_size: 1
+    shuffle: True
+
+data:
+  params:
+    batch_size: 10
+    shuffle: False
+    num_workers: 0
+
+  dataset:
+    target: lego.dataset_creation.get_dataset
+    params:
+      use_processed_dataset: False
+      processed_data_dir: "./code/lego/datasets/ltron_processed"    # this can (and probably should) be put outside the code dir
+
+    seed: 42
+    set_name: "train"
+    num_samples: 500      # its num_samples per brick (ltron_params.bricks_per_sample)
+    train_size : 0.8
+    test_size : 0.2       # not really used, just 1-train_size
+
+    save_dataset: False    # saves the processed dataset, will overwrite what was previously there
+    save_as_gzip: False   # takes less space
+    num_chunks: 1        # useful for large datasets locally
+
+    ltron_data_path: "./code/lego/datasets/ltron_datasets"   # either put in zip as ltron_4.tar.gz or put in folder as ltron_4
+
+ltron_params:
+  use_quantized_noise: True
+  use_quantized_denoise: True
+  quantized_params:
+    step_sizes_xyz: [ 20, 8, 20 ]
+    step_sizes_rot: [ 90, 90, 90 ]
+    noise_mask: [ 1,1,1,0,1,0 ]       # t_x, t_y, t_z, r_x, r_y, r_z where t is translation and r is rotation
+
+  normalization_factor: 330
+  find_normalization_factor: False     # only writes it to normalization.txt, you need to manually enter it after it has been found
+  bricks_per_sample: [4, 8]           # what number of bricks to use 2,4 and 8 are the only options
+  bbox_corners: 2                   # if the model should consider all bbox corners or just the opposing ones
+
+  max_num_points: 100                # dataset pads to this length, so for 8 bricks with 8 conrers you have 64, with 36 padding
+
+visualize_params:
+  path_to_model: null     # null if you want to use the latest model from wandb # "./experiments/ltron/lego_test/best_model.ckpt" #
+  save_dir: "./code/lego/visualizations"
+
+  num_bricks: 8           # the bricks in the sample you want to visualize
+
+  show_denoised: True
+  show_noised: False
+  gif_fps: 20
+
+  dir_to_visualize: null      # if you want to visualize all the files in a directory instead of creating new, null otherwise
+  file_to_visualize: null     # null if you want to instead construct a new file from the params below
+  construct_params:
+    random_constructions: True       # otherwise from omr
+    random_params:
+      idx: 500
+    omr_params:    # {path}/{name}__{model}_{bricks}_{num}.mpd
+      path: "~/.cache/ltron/collections/omr_clean/ldraw"
+      name: "40348 - Birthday Clown"
+      model: 1
+      num: 1
+
+wandb:
+  run_with_wandb: True
+  api_key: null   # if None, will try to read from file
+  api_key_from_file: "./code/wandb_api_key"
+  save_top_k: 1     # save k best model weights
+
+  params:
+    project: "gencomp-ltron"
+    save_dir: "./experiments/ltron"
+    checkpoint_name: 'best_model'
+    name: "lego_test"
+
+setup:
+  target: lego.setup.setup_ltron_home
+  params:
+    ltron_home_path: null   # null, unless you have a complete ltron home path you want to move to code/lego/ltron_home
+
+
